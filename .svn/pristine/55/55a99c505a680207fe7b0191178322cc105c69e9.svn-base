@@ -1,0 +1,117 @@
+package org.costa.file;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+
+public class FilesCompare {
+	private final String originName;
+	private final String archiveName;
+	private final Collection<String> notMatchingFiles = new ArrayList<String>();
+	private final Collection<String> notFoundFiles = new ArrayList<String>();
+
+	public FilesCompare() {
+		this(null, null);
+	}
+
+	public FilesCompare(String originName, String archiveName) {
+		super();
+		this.originName = originName;
+		this.archiveName = archiveName;
+	}
+
+	/**
+	 * @param args
+	 * @throws IOException
+	 */
+	public static void main(String[] args) throws IOException {
+		if (args.length >= 2) {
+			String originName = args[0];
+			String archiveName = args[1];
+			FilesCompare fc = new FilesCompare(originName, archiveName);
+			fc.runCompare();
+		} else {
+			System.out.println("use " + new FilesCompare().getClass().getSimpleName() + " originName archiveName");
+		}
+	}
+
+	private void runCompare() throws IOException {
+		System.out.println(originName);
+		System.out.println(archiveName);
+		Collection<File> allOriginFiles = getAllFiles(new File(originName));
+		for (File originFile : allOriginFiles) {
+			compare(originFile);
+		}
+		if (notMatchingFiles.size() > 0) {
+			System.out.println("\nNot Matching Files:");
+			for (String name : notMatchingFiles) {
+				System.out.println(name);
+			}
+		} else {
+			System.out.println("\nAll files match each other");
+		}
+		if (notFoundFiles.size() > 0) {
+			System.out.println("\nNot Foundg Files:");
+			for (String name : notFoundFiles) {
+				System.out.println(name);
+			}
+		} else {
+			System.out.println("\nNo missing files found");
+		}
+		System.out.println("\nProcess completed");
+	}
+
+	private void compare(File originFile) throws IOException {
+		String originPath = originFile.getAbsolutePath();
+		String archivePath = originPath.replaceFirst(originName, archiveName);
+		File archiveFile = new File(archivePath);
+		if (archiveFile.exists()) {
+			compare(originFile, archiveFile);
+		} else {
+			System.out.println(archivePath + " is not found");
+			notFoundFiles.add(archivePath);
+		}
+	}
+
+	private void compare(File originFile, File archiveFile) throws IOException {
+		//		try {
+		System.out.println("Comparing " + originFile.getAbsolutePath());
+		BufferedInputStream origin = new BufferedInputStream(new FileInputStream(originFile));
+		BufferedInputStream archive = new BufferedInputStream(new FileInputStream(archiveFile));
+		int b = -1;
+		while (-1 != (b = origin.read())) {
+			if (b != archive.read()) {
+				System.out.println("Error: files " + originFile.getAbsolutePath() + " and " + archiveFile.getAbsolutePath() + " does not match");
+				notMatchingFiles.add(originFile.getAbsolutePath());
+				break;
+			}
+		}
+		origin.close();
+		archive.close();
+		//		} catch (IOException e) {
+		//			e.printStackTrace();
+		//		}
+	}
+
+	private Collection<File> getAllFiles(File parFile) {
+		Collection<File> result = new ArrayList<File>();
+		if (parFile.getName().startsWith("$")) {
+			;//Dd nothing
+		} else if (parFile.isDirectory()) {
+			File[] files = parFile.listFiles();
+			if (files != null) {
+				for (File file : files) {
+					result.addAll(getAllFiles(file));
+				}
+			}
+		} else {
+			result.add(parFile);
+		}
+
+		return result;
+	}
+
+}
